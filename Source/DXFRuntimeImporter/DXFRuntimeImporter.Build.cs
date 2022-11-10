@@ -26,8 +26,7 @@ public class DXFRuntimeImporter : ModuleRules
 			new string[]
 			{
 				"Core",
-				"DXFRuntimeImporterLibrary",
-				"Projects"
+				"UE_AssimpLibrary"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -36,6 +35,9 @@ public class DXFRuntimeImporter : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"CoreUObject",
+				"Engine",
+				"Projects"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
