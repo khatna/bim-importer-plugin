@@ -37,7 +37,9 @@ public class DXFRuntimeImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Projects"
+				"Projects",
+				"MeshDescription",
+				"StaticMeshDescription"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

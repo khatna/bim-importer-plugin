@@ -6,6 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "FDXFRuntimeImporterModule"
 
+DEFINE_LOG_CATEGORY(LogAssimp);
+
 void FDXFRuntimeImporterModule::StartupModule()
 {
 	
