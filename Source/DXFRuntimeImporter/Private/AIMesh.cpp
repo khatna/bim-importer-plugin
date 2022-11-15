@@ -1,13 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AIMesh.h"
+#include "AIScene.h"
 #include "DXFRuntimeImporter.h"
 #include "StaticMeshDescription.h"
 
-UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh, float RefEasting, float RefNorthing, float RefAltitude)
+UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh)
 {
 	if (StaticMesh) return StaticMesh;
+
+	// Set Parent scene
+	const UAIScene* ParentScene = Cast<UAIScene>(GetOuter());
+	if (ParentScene == nullptr)
+	{
+		UE_LOG(LogAssimp, Fatal, TEXT("Mesh not parented to an imported scene"))
+		return nullptr;
+	}
 	
 	UE_LOG(LogAssimp, Log, TEXT("Building Mesh: %s"), UTF8_TO_TCHAR(Mesh->mName.C_Str()))
 
@@ -30,9 +38,9 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh, float RefEasting, float RefN
 		aiVector3D Normal = Mesh->mNormals[v];
 
 		FVector UEPosition = FVector(
-			Position.y - RefNorthing,
-			Position.x - RefEasting,
-			Position.z - RefAltitude
+			Position.y - ParentScene->RefNorthing,
+			Position.x - ParentScene->RefEasting,
+			Position.z - ParentScene->RefAltitude
 		);
 
 		// Flip X and Y in Unreal Engine
@@ -42,7 +50,7 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh, float RefEasting, float RefN
 	}
 
 	// Add faces (triangles)
-	FPolygonGroupID PolygonGroupID = MeshDesc->CreatePolygonGroup();
+	const FPolygonGroupID PolygonGroupID = MeshDesc->CreatePolygonGroup();
 	MeshDesc->ReserveNewTriangles(Mesh->mNumFaces);
 	MeshDesc->ReserveNewPolygons(Mesh->mNumFaces);
 	
@@ -54,6 +62,7 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh, float RefEasting, float RefN
 		FVertexInstanceID V1 = FVertexInstanceID(Face.mIndices[1]);
 		FVertexInstanceID V2 = FVertexInstanceID(Face.mIndices[2]);
 
+		// Unreal crashes if a triangle uses less than three distinct vertices
 		if (V0.GetValue() == V1.GetValue() || V0.GetValue() == V2.GetValue() || V1.GetValue() == V2.GetValue())
 		{
 			TrianglesSkipped++;
