@@ -7,7 +7,10 @@
 #include "assimp/postprocess.h"
 #include "assimp/DefaultLogger.hpp"
 
-UAIScene* UAIScene::ImportScene(const FString Path, float RefEasting, float RefNorthing, float RefAltitude)
+UAIScene* UAIScene::ImportScene(
+	const FString Path,
+	float RefEasting, float RefNorthing, float RefAltitude,
+	UMaterial* MeshMaterial, UMaterial* LineMaterial)
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
 	
@@ -22,6 +25,8 @@ UAIScene* UAIScene::ImportScene(const FString Path, float RefEasting, float RefN
 	SceneObj->RefEasting = RefEasting;
 	SceneObj->RefNorthing = RefNorthing;
 	SceneObj->RefAltitude = RefAltitude;
+	SceneObj->MeshMaterial = MeshMaterial;
+	SceneObj->LineMaterial = LineMaterial;
 	
 	return SceneObj;
 }
@@ -32,13 +37,13 @@ void UAIScene::BuildScene()
 	for (int i = 0; i < BaseScene->mNumMeshes; i++)
 	{
 		aiMesh* Mesh = BaseScene->mMeshes[i];
-		if (!Mesh->HasNormals()) // lines, poly-lines etc. don't have normals
+		if (Mesh->mPrimitiveTypes & aiPrimitiveType_LINE || Mesh->mPrimitiveTypes & aiPrimitiveType_POINT)
 		{
 			UAIPolyLine* LineObj = NewObject<UAIPolyLine>(this, UAIPolyLine::StaticClass());
 			LineObj->BuildPolyLineMesh(Mesh);
 			Lines.Add(LineObj);
 		}
-		else
+		else // TRIANGLE or POLYGON
 		{
 			// Create mesh object and set params. Set object parent to the imported scene
 			UAIMesh* MeshObj = NewObject<UAIMesh>(this, UAIMesh::StaticClass());
@@ -51,6 +56,11 @@ void UAIScene::BuildScene()
 TArray<UAIMesh*> UAIScene::GetAllMeshes()
 {
 	return Meshes;
+}
+
+TArray<UAIPolyLine*> UAIScene::GetAllPolyLines()
+{
+	return Lines;
 }
 
 

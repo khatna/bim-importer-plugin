@@ -31,7 +31,9 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh)
 		MeshDesc->CreateVertexInstance(V);
 	}
 
-	// Set positions and normals
+	// Set positions, normals, and UVs
+	TVertexInstanceAttributesRef<FVector> Normals = MeshDesc->GetVertexInstanceNormals();
+	float N = FMath::Sqrt(Mesh->mNumVertices);
 	for (int v = 0; v < Mesh->mNumVertices; v++)
 	{
 		aiVector3D Position = Mesh->mVertices[v];
@@ -45,14 +47,14 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh)
 
 		// Flip X and Y in Unreal Engine
 		MeshDesc->SetVertexPosition(FVertexID(v), UEPosition);
-		TVertexInstanceAttributesRef<FVector> Normals = MeshDesc->GetVertexInstanceNormals();
-		Normals[FVertexInstanceID(v)] = FVector(Normal.y, Normal.x, Normal.z); 
+		Normals[FVertexInstanceID(v)] = FVector(Normal.y, Normal.x, Normal.z);
 	}
 
 	// Add faces (triangles)
 	const FPolygonGroupID PolygonGroupID = MeshDesc->CreatePolygonGroup();
 	MeshDesc->ReserveNewTriangles(Mesh->mNumFaces);
 	MeshDesc->ReserveNewPolygons(Mesh->mNumFaces);
+	MeshDesc->SetPolygonGroupMaterialSlotName(PolygonGroupID, FName(TEXT("Mesh Material")));
 	
 	int TrianglesSkipped = 0;
 	for (int f = 0; f < Mesh->mNumFaces; f++)
@@ -76,9 +78,11 @@ UStaticMesh* UAIMesh::BuildStaticMesh(aiMesh* Mesh)
 	UE_LOG(LogAssimp, Warning, TEXT("Triangles skipped: %d out of %d"), TrianglesSkipped, Mesh->mNumFaces)
 
 	// Build
-	StaticMesh = NewObject<UStaticMesh>(this);
-	StaticMesh->GetStaticMaterials().Add(FStaticMaterial());
+	StaticMesh = NewObject<UStaticMesh>(this, FName(UTF8_TO_TCHAR(Mesh->mName.C_Str())));
+	StaticMesh->SetStaticMaterials({ParentScene->MeshMaterial});
 	StaticMesh->BuildFromStaticMeshDescriptions({MeshDesc});
+	//StaticMesh->AddMaterial(ParentScene->MeshMaterial);
+	//StaticMesh->SetMaterial(0, ParentScene->MeshMaterial);
 	
 	// Set params and return
 	BaseMesh = Mesh;

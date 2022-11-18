@@ -26,7 +26,13 @@ public:
 	 * Import scene (assimp supported file) from given path
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer")
-	static UAIScene* ImportScene(FString Path, float RefEasting, float RefNorthing, float RefAltitude);
+	static UAIScene* ImportScene(
+		FString Path,
+		float RefEasting,
+		float RefNorthing,
+		float RefAltitude,
+		UMaterial* MeshMaterial,
+		UMaterial* LineMaterial);
 
 	/**
 	 * Builds meshes contained in this scene
@@ -40,6 +46,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<UAIMesh*> GetAllMeshes();
 
+	/**
+	* Return an array containing pointers to every polyline mesh in this scene
+	*/
+	UFUNCTION(BlueprintCallable)
+	TArray<UAIPolyLine*> GetAllPolyLines();
+
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefEasting;
 	
@@ -48,6 +60,12 @@ public:
 	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefAltitude;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
+	UMaterial* MeshMaterial;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
+	UMaterial* LineMaterial;
 	
 private:
 	const aiScene* BaseScene;
