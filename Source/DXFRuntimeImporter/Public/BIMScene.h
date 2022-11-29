@@ -3,21 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AIMesh.h"
-#include "AIPolyLine.h"
+#include "BIMMeshActor.h"
+#include "BIMPolyLineActor.h"
 #include "CoreUObject/Public/UObject/Object.h"
 #include "assimp/scene.h"
-#include "AIScene.generated.h"
+#include "BIMScene.generated.h"
 
 /**
  * The UAIScene class imports a DXF scene using the assimp
  * library, and builds the meshes contained in the scene.
  * It exposes references to UAIMesh objects.
  *
- * TODO: review potential memory leak in BaseScene
+ * TODO: review potential memory leak in BaseScene, MeshObjs and LineObjs
  */
 UCLASS(Blueprintable,BlueprintType)
-class DXFRUNTIMEIMPORTER_API UAIScene : public UObject
+class DXFRUNTIMEIMPORTER_API UBIMScene : public UObject
 {
 	GENERATED_BODY()
 
@@ -26,31 +26,25 @@ public:
 	 * Import scene (assimp supported file) from given path
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer")
-	static UAIScene* ImportScene(
-		FString Path,
-		float RefEasting,
-		float RefNorthing,
-		float RefAltitude,
-		UMaterial* MeshMaterial,
-		UMaterial* LineMaterial);
+	static UBIMScene* ImportScene(FString Path, float RefEasting, float RefNorthing, float RefAltitude, UObject* Outer);
 
 	/**
-	 * Builds meshes contained in this scene
+	 * Build and spawn triangle meshes contained in this scene
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
-	void BuildScene();
+	void SpawnMeshes(UMaterialInstance* MeshMaterial);
 	
 	/**
 	 * Return an array containing pointers to every mesh in this scene
 	 */
-	UFUNCTION(BlueprintCallable)
-	TArray<UAIMesh*> GetAllMeshes();
+	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
+	TArray<ABIMMeshActor*> GetAllMeshActors();
 
 	/**
 	* Return an array containing pointers to every polyline mesh in this scene
 	*/
-	UFUNCTION(BlueprintCallable)
-	TArray<UAIPolyLine*> GetAllPolyLines();
+	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
+	TArray<ABIMPolyLineActor*> GetAllPolyLines();
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefEasting;
@@ -60,19 +54,19 @@ public:
 	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefAltitude;
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
-	UMaterial* MeshMaterial;
-	
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
-	UMaterial* LineMaterial;
 	
 private:
 	const aiScene* BaseScene;
+
+	// underlying assimp triangle mesh
+	TArray<aiMesh*> MeshObjs;
+
+	// underlying assimp line mesh objects
+	TArray<aiMesh*> LineObjs;
 	
 	UPROPERTY(Transient)
-	TArray<UAIMesh*> Meshes;
+	TArray<ABIMMeshActor*> MeshActors;
 
 	UPROPERTY(Transient)
-	TArray<UAIPolyLine*> Lines;
+	TArray<ABIMPolyLineActor*> LineActors;
 };

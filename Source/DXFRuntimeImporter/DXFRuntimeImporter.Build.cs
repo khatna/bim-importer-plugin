@@ -26,7 +26,8 @@ public class DXFRuntimeImporter : ModuleRules
 			new string[]
 			{
 				"Core",
-				"UE_AssimpLibrary"
+				"UE_AssimpLibrary",
+				"RuntimeMeshComponent"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
