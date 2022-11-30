@@ -8,6 +8,10 @@
 #include "assimp/postprocess.h"
 #include "assimp/DefaultLogger.hpp"
 
+/*
+ * TODO: Investigate garbage collection w.r.t spawned actors, especially considering that actors are parented to
+ * the world object. I.e. destroying the UBIMScene might not destroy the mesh and line actors.
+ */
 UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float RefNorthing, float RefAltitude, UObject* Outer)
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
@@ -15,9 +19,24 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 	// Create new scene object
 	UBIMScene* SceneObj = NewObject<UBIMScene>(Outer, StaticClass());
 
-	// Import scene using Assimp and initialize it
-	// available Flags: https://assimp.sourceforge.net/lib_html/postprocess_8h.html
-	constexpr unsigned Flags = aiProcessPreset_TargetRealtime_Fast | aiProcess_FindInvalidData;
+	// Import scene using Assimp, with postprocessing flags
+	
+	/*
+	 * available Flags: https://assimp.sourceforge.net/lib_html/postprocess_8h.html 
+	 */
+	constexpr unsigned Flags = (
+		aiProcess_CalcTangentSpace          |
+		aiProcess_GenNormals                |
+		aiProcess_JoinIdenticalVertices	    |
+		aiProcess_RemoveRedundantMaterials  |
+		aiProcess_SplitLargeMeshes          |
+		aiProcess_Triangulate               |
+		aiProcess_GenUVCoords               |
+		aiProcess_SortByPType               |
+		aiProcess_FindDegenerates           |
+		aiProcess_FindInvalidData
+	);
+	
 	const aiScene* BaseScene = aiImportFile(TCHAR_TO_UTF8(*Path), Flags);
 
 	// if the base scene wasn't imported for some reason, return empty obj.
@@ -32,14 +51,15 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 	for (int i = 0; i < BaseScene->mNumMeshes; i++)
 	{
 		aiMesh* Obj = BaseScene->mMeshes[i];
-		if (Obj->mPrimitiveTypes & aiPrimitiveType_LINE || Obj->mPrimitiveTypes & aiPrimitiveType_POINT)
+		if (Obj->mPrimitiveTypes & aiPrimitiveType_LINE)
 		{
 			SceneObj->LineObjs.Add(Obj);
 		}
-		else // TRIANGLE OR POLYGON MESH
+		else if (Obj->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) // assume triangulated (via flags)
 		{
 			SceneObj->MeshObjs.Add(Obj);
 		}
+		// TODO: if point?
 	}
 	
 	return SceneObj;
@@ -61,11 +81,31 @@ void UBIMScene::SpawnMeshes(UMaterialInstance* MeshMaterial)
 		// Add to actor array in scene
 		MeshActor->SetRefs(RefEasting, RefNorthing, RefAltitude);
 		MeshActor->SetMaterial(MeshMaterial);
-		MeshActor->Rename(UTF8_TO_TCHAR(AiMesh->mName.C_Str()));
 		MeshActors.Add(MeshActor);
 
 		// Generate the RMC in spawned actor
 		MeshActor->GenerateMesh(AiMesh);
+	}
+}
+
+void UBIMScene::SpawnLines(UMaterialInstance* LineMaterial)
+{
+	// Spawn lines (similar to meshes)
+	for (int i = 0; i < LineObjs.Num(); i++)
+	{
+		aiMesh* AiMesh = LineObjs[i];
+		UE_LOG(LogAssimp, Log, TEXT("Spawning: %s"), UTF8_TO_TCHAR(AiMesh->mName.C_Str()))
+
+		ABIMPolyLineActor* LineActor = GetWorld()->SpawnActor<ABIMPolyLineActor>(
+			FVector(0.0f, 0.0f, 0.0f),
+			FRotator(0.0f, 0.0f, 0.0f)
+		);
+
+		LineActor->SetRefs(RefEasting, RefNorthing, RefAltitude);
+		LineActor->SetMaterial(LineMaterial);
+		LineActors.Add(LineActor);
+
+		LineActor->GenerateMesh(AiMesh);
 	}
 }
 
@@ -78,6 +118,3 @@ TArray<ABIMPolyLineActor*> UBIMScene::GetAllPolyLines()
 {
 	return LineActors;
 }
-
-
-

@@ -10,9 +10,8 @@
 #include "BIMScene.generated.h"
 
 /**
- * The UAIScene class imports a DXF scene using the assimp
- * library, and builds the meshes contained in the scene.
- * It exposes references to UAIMesh objects.
+ * The UAIScene class imports a DXF (or other supported format) scene using the assimp
+ * library. A file path, UTM reference coordinates and an outer object reference are required
  *
  * TODO: review potential memory leak in BaseScene, MeshObjs and LineObjs
  */
@@ -33,6 +32,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
 	void SpawnMeshes(UMaterialInstance* MeshMaterial);
+	
+	/**
+	 * Build and spawn point and line drawings contained in this scene
+	 */
+	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
+	void SpawnLines(UMaterialInstance* LineMaterial);
 	
 	/**
 	 * Return an array containing pointers to every mesh in this scene

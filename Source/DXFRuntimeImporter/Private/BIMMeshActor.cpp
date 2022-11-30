@@ -23,10 +23,12 @@ void ABIMMeshActor::GenerateMesh(aiMesh* AiMesh)
 	StaticProvider->ClearSection(0, 0);
 
 	// reserve buffers
-	Positions.Empty();
-	Normals.Empty();
-	Tangents.Empty();
-	TexCoords.Empty();
+	TArray<FVector> Positions;
+	TArray<FVector> Normals;
+	TArray<FRuntimeMeshTangent> Tangents;
+	TArray<FVector2D> TexCoords;
+	TArray<int32> Triangles;
+	
 	Positions.AddUninitialized(AiMesh->mNumVertices);
 	Normals.AddUninitialized(AiMesh->mNumVertices);
 	Tangents.AddUninitialized(AiMesh->mNumVertices);
