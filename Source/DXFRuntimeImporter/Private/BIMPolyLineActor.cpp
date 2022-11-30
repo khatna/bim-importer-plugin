@@ -5,7 +5,7 @@
 
 #include "Providers/RuntimeMeshProviderStatic.h"
 
-#define SECTOR_COUNT 3
+#define SECTOR_COUNT 10
 #define RADIUS 2.0f
 
 // Sets default values
