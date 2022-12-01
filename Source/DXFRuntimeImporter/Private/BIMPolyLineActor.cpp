@@ -27,10 +27,10 @@ FVector GetSectorPoint(int Index)
 }
 
 // Store cylinder positions, coords, etc. to supplied arrays
-void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &Positions, TArray<FVector> &Normals, TArray<int32> &Triangles)
+void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &PositionsLOD0, TArray<FVector> &PositionsLOD1, TArray<FVector> &PositionsLOD2, TArray<FVector> &Normals, TArray<int32> &Triangles)
 {
 	// First index
-	int FirstIndex = Positions.Num();
+	int FirstIndex = PositionsLOD0.Num();
 	
 	// calculate and set direction of vertices
 	FVector Direction = Top - Bot;
@@ -39,20 +39,36 @@ void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &Positions, TArr
 
 	for (int i = 0; i < SECTOR_COUNT; i++)
 	{
-		FVector BotPoint = RADIUS * GetSectorPoint(i);
-		BotPoint = Q * BotPoint + Bot;
-		Positions.Push(BotPoint);
+		FVector BotPoint0 = RADIUS * GetSectorPoint(i);
+		FVector BotPoint1 = RADIUS * 1.5 * GetSectorPoint(i);
+		FVector BotPoint2 = RADIUS * 10.0 * GetSectorPoint(i);
+		BotPoint0 = Q * BotPoint0 + Bot;
+		BotPoint1 = Q * BotPoint1 + Bot;
+		BotPoint2 = Q * BotPoint2 + Bot;
+		PositionsLOD0.Push(BotPoint0);
+		PositionsLOD1.Push(BotPoint1);
+		PositionsLOD2.Push(BotPoint2);
 	}
 	
 	for (int i = 0; i < SECTOR_COUNT; i++)
 	{
-		FVector TopPoint = RADIUS * GetSectorPoint(i);
-		TopPoint = Q * TopPoint + Top;
-		Positions.Push(TopPoint);
+		FVector TopPoint0 = RADIUS * GetSectorPoint(i);
+		FVector TopPoint1 = RADIUS * 2.0 * GetSectorPoint(i);
+		FVector TopPoint2 = RADIUS * 2.5 * GetSectorPoint(i);
+		TopPoint0 = Q * TopPoint0 + Top;
+		TopPoint1 = Q * TopPoint1 + Top;
+		TopPoint2 = Q * TopPoint2 + Top;
+		PositionsLOD0.Push(TopPoint0);
+		PositionsLOD1.Push(TopPoint1);
+		PositionsLOD2.Push(TopPoint2);
 	}
 
-	Positions.Push(Bot);
-	Positions.Push(Top);
+	PositionsLOD0.Push(Bot);
+	PositionsLOD0.Push(Top);
+	PositionsLOD1.Push(Bot);
+	PositionsLOD1.Push(Top);
+	PositionsLOD2.Push(Bot);
+	PositionsLOD2.Push(Top);
 	
 	// Set triangles
 	for (int i = 0; i < SECTOR_COUNT; i++)
@@ -62,8 +78,8 @@ void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &Positions, TArr
 		int BotNext = FirstIndex + (i + 1) % SECTOR_COUNT;
 		int TopCur = BotCur + SECTOR_COUNT;
 		int TopNext = BotNext + SECTOR_COUNT;
-		int BotCenter = Positions.Num() - 2;
-		int TopCenter = Positions.Num() - 1;
+		int BotCenter = PositionsLOD0.Num() - 2;
+		int TopCenter = PositionsLOD0.Num() - 1;
 
 		// Side triangles
 		Triangles.Append({ BotCur, BotNext, TopNext });
@@ -82,11 +98,22 @@ void ABIMPolyLineActor::GenerateMesh(aiMesh* AiMesh)
 	// Initialized and Clear RMC
 	GetRuntimeMeshComponent()->Initialize(StaticProvider);
 	StaticProvider->ClearSection(0, 0);
+
+	// Setup 3 LODs
+	FRuntimeMeshLODProperties LOD0 = FRuntimeMeshLODProperties();
+	LOD0.ScreenSize = 1.3f;
+	FRuntimeMeshLODProperties LOD1 = FRuntimeMeshLODProperties();
+	LOD1.ScreenSize = 0.8f;
+	FRuntimeMeshLODProperties LOD2 = FRuntimeMeshLODProperties();
+	LOD2.ScreenSize = 0.3f;
+	StaticProvider->ConfigureLODs({LOD0, LOD1, LOD2});
 	
 	// Set RMC material
 	StaticProvider->SetupMaterialSlot(0, TEXT("BIM Line Material"), Material);
 	
-	TArray<FVector> Positions;
+	TArray<FVector> PositionsLOD0;
+	TArray<FVector> PositionsLOD1;
+	TArray<FVector> PositionsLOD2;
 	TArray<FVector> Normals;
 	TArray<int32> Triangles;
 	TArray<FRuntimeMeshTangent> Tangents;
@@ -101,13 +128,15 @@ void ABIMPolyLineActor::GenerateMesh(aiMesh* AiMesh)
 		const aiVector3D TopVec = AiMesh->mVertices[Face.mIndices[1]];
 		FVector Top = FVector(TopVec.y - RefNorthing, TopVec.x - RefEasting, TopVec.z - RefAltitude);
 		FVector Bot = FVector(BotVec.y - RefNorthing, BotVec.x - RefEasting, BotVec.z - RefAltitude);
-		CreateCylinder(Top, Bot, Positions, Normals, Triangles);
+		CreateCylinder(Top, Bot, PositionsLOD0, PositionsLOD1, PositionsLOD2, Normals, Triangles);
 	}
-
 	
 	// Create RMC section from cylinder
 	const TArray<FColor> EmptyColors{};
-	StaticProvider->CreateSectionFromComponents(0, 0, 0, Positions, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
+
+	StaticProvider->CreateSectionFromComponents(0, 0, 0, PositionsLOD0, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
+	StaticProvider->CreateSectionFromComponents(1, 0, 0, PositionsLOD1, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
+	StaticProvider->CreateSectionFromComponents(2, 0, 0, PositionsLOD2, Triangles, Normals, TexCoords, EmptyColors, Tangents, ERuntimeMeshUpdateFrequency::Infrequent, false);
 	
 	// Set base mesh for future reference (maybe)	
 	BaseMesh = AiMesh;
