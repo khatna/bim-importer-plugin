@@ -40,8 +40,8 @@ void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &PositionsLOD0, 
 	for (int i = 0; i < SECTOR_COUNT; i++)
 	{
 		FVector BotPoint0 = RADIUS * GetSectorPoint(i);
-		FVector BotPoint1 = RADIUS * 1.5 * GetSectorPoint(i);
-		FVector BotPoint2 = RADIUS * 10.0 * GetSectorPoint(i);
+		FVector BotPoint1 = RADIUS * 2.0 * GetSectorPoint(i);
+		FVector BotPoint2 = RADIUS * 3.0 * GetSectorPoint(i);
 		BotPoint0 = Q * BotPoint0 + Bot;
 		BotPoint1 = Q * BotPoint1 + Bot;
 		BotPoint2 = Q * BotPoint2 + Bot;
@@ -54,7 +54,7 @@ void CreateCylinder(FVector &Top, FVector &Bot, TArray<FVector> &PositionsLOD0, 
 	{
 		FVector TopPoint0 = RADIUS * GetSectorPoint(i);
 		FVector TopPoint1 = RADIUS * 2.0 * GetSectorPoint(i);
-		FVector TopPoint2 = RADIUS * 2.5 * GetSectorPoint(i);
+		FVector TopPoint2 = RADIUS * 3.0 * GetSectorPoint(i);
 		TopPoint0 = Q * TopPoint0 + Top;
 		TopPoint1 = Q * TopPoint1 + Top;
 		TopPoint2 = Q * TopPoint2 + Top;
