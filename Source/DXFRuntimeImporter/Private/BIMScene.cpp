@@ -48,7 +48,7 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 	SceneObj->RefAltitude = RefAltitude;
 
 	// Set meshes and lines
-	for (int i = 0; i < BaseScene->mNumMeshes; i++)
+	for (unsigned int i = 0; i < BaseScene->mNumMeshes; i++)
 	{
 		aiMesh* Obj = BaseScene->mMeshes[i];
 		if (Obj->mPrimitiveTypes & aiPrimitiveType_LINE)

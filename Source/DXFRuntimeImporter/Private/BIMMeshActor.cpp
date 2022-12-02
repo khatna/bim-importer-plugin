@@ -35,14 +35,15 @@ void ABIMMeshActor::GenerateMesh(aiMesh* AiMesh)
 	TexCoords.AddUninitialized(AiMesh->mNumVertices);
 	
 	// set positions, normals, tangents, UV
-	for (int v = 0; v < AiMesh->mNumVertices; v++)
+	for (unsigned int v = 0; v < AiMesh->mNumVertices; v++)
 	{
 		if (AiMesh->HasPositions())
 		{
+			// centimeter scaling
 			Positions[v] = FVector(
-				AiMesh->mVertices[v].y - RefNorthing,
-				AiMesh->mVertices[v].x - RefEasting,
-				AiMesh->mVertices[v].z - RefAltitude
+				(AiMesh->mVertices[v].y - RefNorthing) * 100.0f,
+				(AiMesh->mVertices[v].x - RefEasting) * 100.0f,
+				(AiMesh->mVertices[v].z - RefAltitude) * 100.0f
 			);	
 		}
 
@@ -72,7 +73,7 @@ void ABIMMeshActor::GenerateMesh(aiMesh* AiMesh)
 
 	// set triangles
 	int TrianglesSkipped = 0;
-	for (int f = 0; f < AiMesh->mNumFaces; f++)
+	for (unsigned int f = 0; f < AiMesh->mNumFaces; f++)
 	{
 		const aiFace Face = AiMesh->mFaces[f];
 

@@ -6,7 +6,7 @@
 #include "Providers/RuntimeMeshProviderStatic.h"
 
 #define SECTOR_COUNT 10
-#define RADIUS 2.0f
+#define RADIUS 200.0f
 
 // Sets default values
 ABIMPolyLineActor::ABIMPolyLineActor()
@@ -120,14 +120,15 @@ void ABIMPolyLineActor::GenerateMesh(aiMesh* AiMesh)
 	TArray<FVector2D> TexCoords;
 	
 	// For each line, create a cylinder
-	for (int f = 0; f < AiMesh->mNumFaces; f++)
+	for (unsigned int f = 0; f < AiMesh->mNumFaces; f++)
 	{
 		// Create and store cylinder in buffers
 		const aiFace Face = AiMesh->mFaces[f];
 		const aiVector3D BotVec = AiMesh->mVertices[Face.mIndices[0]];
 		const aiVector3D TopVec = AiMesh->mVertices[Face.mIndices[1]];
-		FVector Top = FVector(TopVec.y - RefNorthing, TopVec.x - RefEasting, TopVec.z - RefAltitude);
-		FVector Bot = FVector(BotVec.y - RefNorthing, BotVec.x - RefEasting, BotVec.z - RefAltitude);
+		// centimeter scaling
+		FVector Top = 100.0f * FVector(TopVec.y - RefNorthing, TopVec.x - RefEasting, TopVec.z - RefAltitude);
+		FVector Bot = 100.0f * FVector(BotVec.y - RefNorthing, BotVec.x - RefEasting, BotVec.z - RefAltitude);
 		CreateCylinder(Top, Bot, PositionsLOD0, PositionsLOD1, PositionsLOD2, Normals, Triangles);
 	}
 	
