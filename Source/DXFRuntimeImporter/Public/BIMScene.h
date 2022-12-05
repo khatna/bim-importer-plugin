@@ -12,8 +12,6 @@
 /**
  * The UAIScene class imports a DXF (or other supported format) scene using the assimp
  * library. A file path, UTM reference coordinates and an outer object reference are required
- *
- * TODO: review potential memory leak in BaseScene, MeshObjs and LineObjs
  */
 UCLASS(Blueprintable,BlueprintType)
 class DXFRUNTIMEIMPORTER_API UBIMScene : public UObject
@@ -59,6 +57,9 @@ public:
 	
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefAltitude;
+
+protected:
+	virtual void BeginDestroy() override;
 	
 private:
 	const aiScene* BaseScene;

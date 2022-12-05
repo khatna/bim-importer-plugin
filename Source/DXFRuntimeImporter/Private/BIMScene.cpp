@@ -9,7 +9,6 @@
 #include "assimp/DefaultLogger.hpp"
 
 /*
- * TODO: Investigate garbage collection w.r.t spawned actors, especially considering that actors are parented to
  * the world object. I.e. destroying the UBIMScene might not destroy the mesh and line actors.
  */
 UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float RefNorthing, float RefAltitude, UObject* Outer)
@@ -117,4 +116,28 @@ TArray<ABIMMeshActor*> UBIMScene::GetAllMeshActors()
 TArray<ABIMPolyLineActor*> UBIMScene::GetAllPolyLines()
 {
 	return LineActors;
+}
+
+void UBIMScene::BeginDestroy()
+{
+	// release assimp resources
+	aiReleaseImport(BaseScene);
+
+	// null assimp pointers
+	BaseScene = nullptr;
+	MeshObjs.Empty();
+	LineObjs.Empty();
+
+	// destroy "child" actors
+	for (ABIMMeshActor* Actor : MeshActors)
+	{
+		Actor->Destroy();
+	}
+
+	for (ABIMPolyLineActor* Actor : LineActors)
+	{
+		Actor->Destroy();
+	}
+	
+	UObject::BeginDestroy();
 }
