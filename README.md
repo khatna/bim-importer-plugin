@@ -20,5 +20,7 @@ Features included:
 5. Build `assimp` by either using `cmake --build .` or the generated Visual Studio Solution files
 6. Rebuild the project
 
-
+## To-do
+1. Look into garbage collection, possible memory leaks
+2. Performance profiling
 
