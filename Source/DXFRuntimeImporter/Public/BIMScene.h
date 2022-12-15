@@ -7,6 +7,7 @@
 #include "BIMPolyLineActor.h"
 #include "CoreUObject/Public/UObject/Object.h"
 #include "assimp/scene.h"
+#include "HttpModule.h"
 #include "BIMScene.generated.h"
 
 /**
@@ -20,22 +21,22 @@ class DXFRUNTIMEIMPORTER_API UBIMScene : public UObject
 
 public:
 	/**
-	 * Import scene (assimp supported file) from given path
+	 * Import scene (assimp supported file) from given path and automatically render it.
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer")
-	static UBIMScene* ImportScene(FString Path, float RefEasting, float RefNorthing, float RefAltitude, UObject* Outer);
+	static UBIMScene* ImportScene(FString BIMUrl, float RefEasting, float RefNorthing, float RefAltitude, UMaterialInstance* MeshMaterial, UMaterialInstance* LineMaterial, UObject* Outer);
 
 	/**
 	 * Build and spawn triangle meshes contained in this scene
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
-	void SpawnMeshes(UMaterialInstance* MeshMaterial);
+	void SpawnMeshes();
 	
 	/**
 	 * Build and spawn point and line drawings contained in this scene
 	 */
 	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
-	void SpawnLines(UMaterialInstance* LineMaterial);
+	void SpawnLines();
 	
 	/**
 	 * Return an array containing pointers to every mesh in this scene
@@ -58,6 +59,16 @@ public:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefAltitude;
 
+	UPROPERTY(VisibleAnywhere,BlueprintReadWrite)
+	UMaterialInstance* MeshMaterial;
+	
+	UPROPERTY(VisibleAnywhere,BlueprintReadWrite)
+	UMaterialInstance* LineMaterial;
+	
+	// The outer object that parents the scene (useful for GC and spawning)
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
+	UObject* Outer;
+	
 protected:
 	virtual void BeginDestroy() override;
 	
@@ -75,4 +86,7 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<ABIMPolyLineActor*> LineActors;
+
+	// HTTP Callback when BIM model is received
+	void OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 };

@@ -4,23 +4,54 @@
 #include "BIMScene.h"
 
 #include "DXFRuntimeImporter.h"
+#include "HttpModule.h"
 #include "assimp/cimport.h"
 #include "assimp/postprocess.h"
 #include "assimp/DefaultLogger.hpp"
+#include "Interfaces/IHttpResponse.h"
 
 /*
  * the world object. I.e. destroying the UBIMScene might not destroy the mesh and line actors.
  */
-UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float RefNorthing, float RefAltitude, UObject* Outer)
+UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float RefNorthing, float RefAltitude, UMaterialInstance* MeshMaterial, UMaterialInstance* LineMaterial, UObject* Outer)
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
 	
 	// Create new scene object
 	UBIMScene* SceneObj = NewObject<UBIMScene>(Outer, StaticClass());
+	
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
+	Req->OnProcessRequestComplete().BindUObject(SceneObj, &UBIMScene::OnBIMDownloaded);
+	Req->SetVerb(TEXT("GET"));
+	Req->SetURL(Path);
+	Req->ProcessRequest();
+	
+	SceneObj->RefEasting = RefEasting;
+	SceneObj->RefNorthing = RefNorthing;
+	SceneObj->RefAltitude = RefAltitude;
+	SceneObj->MeshMaterial = MeshMaterial;
+	SceneObj->LineMaterial = LineMaterial;
+	SceneObj->Outer = Outer;
+	
+	return SceneObj;
+}
 
-	// Import scene using Assimp, with postprocessing flags
+void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	
+	if (!bWasSuccessful || Response->GetResponseCode() / 100 == 4 || Response->GetResponseCode() / 100 == 5) // better way?
+	{
+		UE_LOG(LogAssimp, Warning, TEXT("Request unsuccessful"))
+		return;
+	}
+	
+	UE_LOG(LogAssimp, Warning, TEXT("Request Successful"))
+	const FString ResContent = Response->GetContentAsString();
+	const char* Content = TCHAR_TO_UTF8(*ResContent);
+	const unsigned Length = ResContent.Len();
 	
 	/*
+	 * Import scene using Assimp, with postprocessing flags
 	 * available Flags: https://assimp.sourceforge.net/lib_html/postprocess_8h.html 
 	 */
 	constexpr unsigned Flags = (
@@ -36,35 +67,36 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 		aiProcess_FindInvalidData
 	);
 	
-	const aiScene* BaseScene = aiImportFile(TCHAR_TO_UTF8(*Path), Flags);
-
-	// if the base scene wasn't imported for some reason, return empty obj.
-	if (!BaseScene) return SceneObj;
+	const aiScene* Scene = aiImportFileFromMemory(Content, Length, Flags, "");
 	
-	SceneObj->BaseScene = BaseScene;
-	SceneObj->RefEasting = RefEasting;
-	SceneObj->RefNorthing = RefNorthing;
-	SceneObj->RefAltitude = RefAltitude;
-
-	// Set meshes and lines
-	for (unsigned int i = 0; i < BaseScene->mNumMeshes; i++)
+	if (!Scene)
 	{
-		aiMesh* Obj = BaseScene->mMeshes[i];
+		UE_LOG(LogAssimp, Fatal, TEXT("BIM failed to import."))
+		return;
+	}
+	
+	// Set meshes and lines	
+	for (unsigned int i = 0; i < Scene->mNumMeshes; i++)
+	{
+		aiMesh* Obj = Scene->mMeshes[i];
 		if (Obj->mPrimitiveTypes & aiPrimitiveType_LINE)
 		{
-			SceneObj->LineObjs.Add(Obj);
+			this->LineObjs.Add(Obj);
 		}
 		else if (Obj->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) // assume triangulated (via flags)
 		{
-			SceneObj->MeshObjs.Add(Obj);
+			this->MeshObjs.Add(Obj);
 		}
 		// TODO: if point?
 	}
 	
-	return SceneObj;
+	this->BaseScene = Scene;
+
+	SpawnLines();
+	SpawnMeshes();
 }
 
-void UBIMScene::SpawnMeshes(UMaterialInstance* MeshMaterial)
+void UBIMScene::SpawnMeshes()
 {
 	// Spawn meshes
 	for (int i = 0; i < MeshObjs.Num(); i++)
@@ -87,7 +119,7 @@ void UBIMScene::SpawnMeshes(UMaterialInstance* MeshMaterial)
 	}
 }
 
-void UBIMScene::SpawnLines(UMaterialInstance* LineMaterial)
+void UBIMScene::SpawnLines()
 {
 	// Spawn lines (similar to meshes)
 	for (int i = 0; i < LineObjs.Num(); i++)

@@ -27,7 +27,8 @@ public class DXFRuntimeImporter : ModuleRules
 			{
 				"Core",
 				"UE_AssimpLibrary",
-				"RuntimeMeshComponent"
+				"RuntimeMeshComponent",
+				"HTTP"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -38,9 +39,7 @@ public class DXFRuntimeImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Projects",
-				"MeshDescription",
-				"StaticMeshDescription"
+				"Projects"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
