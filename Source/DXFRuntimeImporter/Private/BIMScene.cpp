@@ -28,35 +28,31 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 	SceneObj->Outer = Outer;
 	
 	// Start processing request for BIM model
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-	Req->OnProcessRequestComplete().BindUObject(SceneObj, &UBIMScene::OnBIMDownloaded);
-	Req->SetVerb(TEXT("GET"));
-	Req->SetURL(Path);
-	Req->ProcessRequest();
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->OnProcessRequestComplete().BindUObject(SceneObj, &UBIMScene::OnBIMDownloaded);
+	Request->SetVerb(TEXT("GET"));
+	Request->SetURL(Path);
+	Request->ProcessRequest();
+
+	// disable garbage collection while BIM model is downloading
+	SceneObj->AddToRoot();
 	
 	return SceneObj;
 }
 
 void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-	
-	if (!bWasSuccessful || Response->GetResponseCode() / 100 == 4 || Response->GetResponseCode() / 100 == 5) // better way?
+	if (!bWasSuccessful || !Response.IsValid() || Response->GetContentLength() <= 0)
 	{
 		UE_LOG(LogAssimp, Warning, TEXT("Request unsuccessful"))
-		return;
+		return;	
 	}
-	
-	UE_LOG(LogAssimp, Warning, TEXT("Request Successful"))
-	const FString ResContent = Response->GetContentAsString();
-	const char* Content = TCHAR_TO_ANSI(*ResContent);
-	const unsigned Length = ResContent.Len();
-
-	GEngine->AddOnScreenDebugMessage(1, 10.0f, FColor::White, FString::FromInt(Length));
 	
 	/*
 	 * Import scene using Assimp, with postprocessing flags
 	 * available Flags: https://assimp.sourceforge.net/lib_html/postprocess_8h.html 
 	 */
+	
 	constexpr unsigned Flags = (
 		aiProcess_CalcTangentSpace          |
 		aiProcess_GenNormals                |
@@ -69,8 +65,14 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 		aiProcess_FindDegenerates           |
 		aiProcess_FindInvalidData
 	);
-	
-	const aiScene* Scene = aiImportFileFromMemory(Content, Length, Flags, "");
+
+	// Read scene from HTTP response buffer
+	const aiScene* Scene = aiImportFileFromMemory(
+		TCHAR_TO_ANSI(*Response->GetContentAsString()),
+		static_cast<unsigned>(Response->GetContentLength()),
+		Flags,
+		"" // no hint
+	);
 	
 	if (!Scene)
 	{
@@ -98,6 +100,9 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 
 	SpawnLines();
 	SpawnMeshes();
+
+	// Remove from root to re-enable garbage collection
+	RemoveFromRoot();
 }
 
 void UBIMScene::SpawnMeshes()
