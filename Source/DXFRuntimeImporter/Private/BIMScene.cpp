@@ -17,14 +17,8 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 {
 	Assimp::DefaultLogger::set(new UEAssimpStream());
 	
-	// Create new scene object
+	// Create new scene object and set params
 	UBIMScene* SceneObj = NewObject<UBIMScene>(Outer, StaticClass());
-	
-	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
-	Req->OnProcessRequestComplete().BindUObject(SceneObj, &UBIMScene::OnBIMDownloaded);
-	Req->SetVerb(TEXT("GET"));
-	Req->SetURL(Path);
-	Req->ProcessRequest();
 	
 	SceneObj->RefEasting = RefEasting;
 	SceneObj->RefNorthing = RefNorthing;
@@ -32,6 +26,13 @@ UBIMScene* UBIMScene::ImportScene(const FString Path, float RefEasting, float Re
 	SceneObj->MeshMaterial = MeshMaterial;
 	SceneObj->LineMaterial = LineMaterial;
 	SceneObj->Outer = Outer;
+	
+	// Start processing request for BIM model
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = FHttpModule::Get().CreateRequest();
+	Req->OnProcessRequestComplete().BindUObject(SceneObj, &UBIMScene::OnBIMDownloaded);
+	Req->SetVerb(TEXT("GET"));
+	Req->SetURL(Path);
+	Req->ProcessRequest();
 	
 	return SceneObj;
 }
@@ -47,8 +48,10 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 	
 	UE_LOG(LogAssimp, Warning, TEXT("Request Successful"))
 	const FString ResContent = Response->GetContentAsString();
-	const char* Content = TCHAR_TO_UTF8(*ResContent);
+	const char* Content = TCHAR_TO_ANSI(*ResContent);
 	const unsigned Length = ResContent.Len();
+
+	GEngine->AddOnScreenDebugMessage(1, 10.0f, FColor::White, FString::FromInt(Length));
 	
 	/*
 	 * Import scene using Assimp, with postprocessing flags
@@ -71,7 +74,8 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 	
 	if (!Scene)
 	{
-		UE_LOG(LogAssimp, Fatal, TEXT("BIM failed to import."))
+		UE_LOG(LogAssimp, Error, TEXT("BIM failed to import."))
+		GEngine->AddOnScreenDebugMessage(2, 10.0f, FColor::Red, TEXT("There was an error while importing the BIM"));
 		return;
 	}
 	
