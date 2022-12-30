@@ -8,6 +8,7 @@
 #include "assimp/cimport.h"
 #include "assimp/postprocess.h"
 #include "assimp/DefaultLogger.hpp"
+#include "assimp/Importer.hpp"
 #include "Interfaces/IHttpResponse.h"
 
 /*
@@ -54,30 +55,34 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 	 */
 	
 	constexpr unsigned Flags = (
-		aiProcess_CalcTangentSpace          |
 		aiProcess_GenNormals                |
-		aiProcess_JoinIdenticalVertices	    |
 		aiProcess_RemoveRedundantMaterials  |
 		aiProcess_SplitLargeMeshes          |
 		aiProcess_Triangulate               |
-		aiProcess_GenUVCoords               |
 		aiProcess_SortByPType               |
 		aiProcess_FindDegenerates           |
-		aiProcess_FindInvalidData
+		aiProcess_FindInvalidData           |
+		aiProcess_OptimizeGraph             |
+		aiProcess_OptimizeMeshes            |
+		aiProcess_SplitLargeMeshes
 	);
-
-	// Read scene from HTTP response buffer
-	const aiScene* Scene = aiImportFileFromMemory(
-		TCHAR_TO_ANSI(*Response->GetContentAsString()),
-		static_cast<unsigned>(Response->GetContentLength()),
-		Flags,
-		"" // no hint
-	);
+	
+	// Read scene from HTTP response buffer and import bim model
+	UE_LOG(LogAssimp, Log, TEXT("Import Begin"))
+	Assimp::Importer *Imp = new Assimp::Importer(); 
+	const void * Buffer = Response->GetContent().GetData();
+	const size_t Length = Response->GetContentLength();
+	// have to provide "glb" as hint to import GLTF files for some reason.
+	// DXF files still work given "glb" as hint, since importer falls back to signature based detection
+	const aiScene* Scene = Imp->ReadFileFromMemory(Buffer, Length, Flags, "glb");
+	UE_LOG(LogAssimp, Log, TEXT("Import End"))
 	
 	if (!Scene)
 	{
 		UE_LOG(LogAssimp, Error, TEXT("BIM failed to import."))
 		GEngine->AddOnScreenDebugMessage(2, 10.0f, FColor::Red, TEXT("There was an error while importing the BIM"));
+		BaseScene = nullptr;
+		RemoveFromRoot();
 		return;
 	}
 	
@@ -95,7 +100,7 @@ void UBIMScene::OnBIMDownloaded(FHttpRequestPtr Request, FHttpResponsePtr Respon
 		}
 		// TODO: if point?
 	}
-	
+
 	this->BaseScene = Scene;
 
 	SpawnLines();
@@ -187,8 +192,11 @@ void UBIMScene::ShowScene()
 
 void UBIMScene::BeginDestroy()
 {
-	// release assimp resources
-	aiReleaseImport(BaseScene);
+	if (BaseScene)
+	{
+		// release assimp resources
+		aiReleaseImport(BaseScene);
+	}
 
 	// null assimp pointers
 	BaseScene = nullptr;

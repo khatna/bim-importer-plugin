@@ -6,7 +6,7 @@
 #include "Providers/RuntimeMeshProviderStatic.h"
 
 #define SECTOR_COUNT 10
-#define RADIUS 200.0f
+#define RADIUS 50.0f
 
 // Sets default values
 ABIMPolyLineActor::ABIMPolyLineActor()
