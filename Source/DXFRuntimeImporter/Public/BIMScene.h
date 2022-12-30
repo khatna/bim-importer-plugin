@@ -50,6 +50,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="DXF Importer|Scene")
 	TArray<ABIMPolyLineActor*> GetAllPolyLines();
 
+	/**
+	* Hide scene
+	*/
+	UFUNCTION(BlueprintCallable, Category = "DXF Importer|Scene")
+	void HideScene();
+
+	/**
+	* Show scene
+	*/
+	UFUNCTION(BlueprintCallable, Category = "DXF Importer|Scene")
+	void ShowScene();
+
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	float RefEasting;
 	

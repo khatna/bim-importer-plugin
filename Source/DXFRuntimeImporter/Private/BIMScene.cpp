@@ -159,6 +159,32 @@ TArray<ABIMPolyLineActor*> UBIMScene::GetAllPolyLines()
 	return LineActors;
 }
 
+void UBIMScene::HideScene()
+{
+	for (ABIMMeshActor* Actor : MeshActors)
+	{
+		Actor->SetActorHiddenInGame(true);
+	}
+
+	for (ABIMPolyLineActor* Actor : LineActors)
+	{
+		Actor->SetActorHiddenInGame(true);
+	}
+}
+
+void UBIMScene::ShowScene()
+{
+	for (ABIMMeshActor* Actor : MeshActors)
+	{
+		Actor->SetActorHiddenInGame(false);
+	}
+
+	for (ABIMPolyLineActor* Actor : LineActors)
+	{
+		Actor->SetActorHiddenInGame(false);
+	}
+}
+
 void UBIMScene::BeginDestroy()
 {
 	// release assimp resources
@@ -168,6 +194,9 @@ void UBIMScene::BeginDestroy()
 	BaseScene = nullptr;
 	MeshObjs.Empty();
 	LineObjs.Empty();
+
+	// hide actors
+	HideScene();
 
 	// destroy "child" actors
 	for (ABIMMeshActor* Actor : MeshActors)
