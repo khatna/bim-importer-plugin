@@ -16,9 +16,7 @@ Features included:
 1. Install the Runtime Mesh Component Plugin
 2. Create the `Plugins` folder in the UE4 project folder if necessary, and open it in terminal
 3. `git clone --recurse-submodules https://github.com/khatna/bim-importer-plugin`
-4. Open the `bim-importer-plugin/Source/ThirdParty/UE_AssimpLibrary/assimp` directory and run `cmake CMakeLists.txt -DLIBRARY_SUFFIX:STRING=`
-5. Build `assimp` by either using `cmake --build .` or the generated Visual Studio Solution files
-6. Rebuild the project
+4. Rebuild the project
 
 ## To-do
 1. Look into garbage collection, possible memory leaks
