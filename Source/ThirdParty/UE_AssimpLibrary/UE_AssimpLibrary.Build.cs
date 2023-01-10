@@ -9,149 +9,86 @@ using UnrealBuildTool;
 
 public class UE_AssimpLibrary : ModuleRules
 {
-
-    public string BinFolder(ReadOnlyTargetRules Target)
-    {
-        if (Target.Platform == UnrealTargetPlatform.Mac)
-            return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/Mac/"));
-        if (Target.Platform == UnrealTargetPlatform.IOS)
-            return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/IOS/"));
-        if (Target.Platform == UnrealTargetPlatform.Win64)
-            return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/Win64/"));
-        if (Target.Platform == UnrealTargetPlatform.Android)
-            return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/Android/"));
-        if (Target.Platform == UnrealTargetPlatform.Linux)
-            return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../../Binaries/Linux/"));
-        return "";
-    }
-
     public UE_AssimpLibrary(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
-
-        string BinaryFolder = BinFolder(Target);
+        
+        // add include path
         PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "assimp", "include"));
+        
+        // Prepare cmake process
+        Process proc = new Process();
+        proc.StartInfo.WorkingDirectory = ModuleDirectory;
+        proc.StartInfo.FileName = "/bin/bash";
+        proc.StartInfo.UseShellExecute = false;
+        proc.StartInfo.RedirectStandardOutput = false;
+        proc.StartInfo.CreateNoWindow = true;
         
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             string AssimpDll = Path.Combine(ModuleDirectory, "assimp", "bin", "Release", "assimp.dll");
+            
             // build if lib hasn't been built
             if (!File.Exists(AssimpDll))
             {
                 Console.WriteLine("assimp dll not found");
-                Process proc = new Process();
                 proc.StartInfo.FileName = Path.Combine(ModuleDirectory, "build_windows.bat");
-                proc.StartInfo.WorkingDirectory = ModuleDirectory;
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = false;
-                proc.StartInfo.CreateNoWindow = true;
                 proc.Start();
                 proc.WaitForExit();
             }
 
             // Add the import library
-            PublicAdditionalLibraries.Add(Path.Combine(ModuleDirectory, "assimp", "lib", "Release", "assimp.lib"));
+            PublicAdditionalLibraries.Add(AssimpDll);
 
             // Delay-load the DLL, so we can load it from the right place first
             PublicDelayLoadDLLs.Add(AssimpDll);
-            
-            // Copy to plugin bin folder
-            Directory.CreateDirectory(BinaryFolder);
-            string BinPath = Path.Combine(ModuleDirectory, BinaryFolder, "assimp.dll");
-            CopyFile(AssimpDll, BinPath);
 
             // Ensure that the DLL is staged along with the executable
-            RuntimeDependencies.Add("$(TargetOutputDir)/assimp.dll", BinPath);
+            RuntimeDependencies.Add("$(TargetOutputDir)/assimp.dll", AssimpDll);
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
             string AssimpDylib = Path.Combine(ModuleDirectory, "assimp", "bin", "libassimp.dylib");
 
-            // build if lib hasn't been built
             if (!File.Exists(AssimpDylib))
             {
-                var proc = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "/bin/bash",
-                        Arguments = "./build_mac.sh",
-                        WorkingDirectory = ModuleDirectory,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = false,
-                        CreateNoWindow = true
-                    }
-                };
+                proc.StartInfo.Arguments = "./build_mac.sh";
                 proc.Start();
                 proc.WaitForExit();
             }
 
-            // Add the import library
-            PublicAdditionalLibraries.Add(Path.Combine(ModuleDirectory, "assimp", "bin", "libassimp.dylib"));
-
-            Directory.CreateDirectory(BinaryFolder);
-            string BinPath = Path.Combine(ModuleDirectory, BinaryFolder, "libassimp.dylib");
-
-            CopyFile(AssimpDylib, BinPath);
-
-            // Stage shared library next to executable
-            RuntimeDependencies.Add("$(TargetOutputDir)/libassimp.dylib", BinPath);
+            PublicAdditionalLibraries.Add(AssimpDylib);
+            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.dylib", AssimpDylib);
+            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.5.dylib", AssimpDylib);
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
             string AssimpSo = Path.Combine(ModuleDirectory, "assimp", "bin", "libassimp.so");
 
-            // build if lib hasn't been built
             if (!File.Exists(AssimpSo))
             {
-                var proc = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "/bin/bash",
-                        Arguments = "./build_linux.sh",
-                        WorkingDirectory = ModuleDirectory,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = false,
-                        CreateNoWindow = true
-                    }
-                };
+                proc.StartInfo.Arguments = "./build_linux.sh";
                 proc.Start();
                 proc.WaitForExit();
             }
 
-            // Add the import library
             PublicAdditionalLibraries.Add(AssimpSo);
-            Directory.CreateDirectory(BinaryFolder);
-            string BinPath = Path.Combine(ModuleDirectory, BinaryFolder, "libassimp.so");
-            CopyFile(AssimpSo, BinPath);
-
-            // Stage shared library next to executable
-            RuntimeDependencies.Add("$(TargetOutputDir)/libassimp.so", BinPath);
+            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.so", AssimpSo);
+            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.so.5", AssimpSo);
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
-            PublicAdditionalLibraries.Add(Path.Combine(BinaryFolder, "arm64-v8a", "libassimp.so"));
+            string AssimpAndroidSo = Path.Combine(ModuleDirectory, "assimp", "bin", "libassimp.so");
+            
+            if (!File.Exists(AssimpAndroidSo))
+            {
+                proc.StartInfo.Arguments = "./build_android.sh";
+                proc.Start();
+                proc.WaitForExit();
+            }
+            
+            PublicAdditionalLibraries.Add(AssimpAndroidSo);
+            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.so", AssimpAndroidSo);
         }
     }
-    public void CopyFile(string Source, string Dest)
-    {
-        System.Console.WriteLine("Copying {0} to {1}", Source, Dest);
-        if (System.IO.File.Exists(Dest))
-        {
-            System.IO.File.SetAttributes(Dest, System.IO.File.GetAttributes(Dest) & ~System.IO.FileAttributes.ReadOnly);
-        }
-        try
-        {
-            //Make Folder
-
-            System.IO.File.Copy(Source, Dest, true);
-        }
-        catch (System.Exception ex)
-        {
-            System.Console.WriteLine("Failed to copy file: {0}", ex.Message);
-        }
-    }
-
-
 }
