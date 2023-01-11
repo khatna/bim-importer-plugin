@@ -86,10 +86,9 @@ public class UE_AssimpLibrary : ModuleRules
                 proc.Start();
                 proc.WaitForExit();
             }
-            
+
+            AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(ModuleDirectory, "Assimp_APL.xml"));
             PublicAdditionalLibraries.Add(AssimpAndroidSo);
-            RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.so", AssimpAndroidSo);
-            RuntimeDependencies.Add("$(TargetOutputDir)/libassimp.so", AssimpAndroidSo);
         }
     }
 }
