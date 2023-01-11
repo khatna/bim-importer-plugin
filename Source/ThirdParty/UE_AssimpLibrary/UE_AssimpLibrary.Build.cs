@@ -89,6 +89,7 @@ public class UE_AssimpLibrary : ModuleRules
             
             PublicAdditionalLibraries.Add(AssimpAndroidSo);
             RuntimeDependencies.Add("$(BinaryOutputDir)/libassimp.so", AssimpAndroidSo);
+            RuntimeDependencies.Add("$(TargetOutputDir)/libassimp.so", AssimpAndroidSo);
         }
     }
 }
