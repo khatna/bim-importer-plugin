@@ -10,7 +10,6 @@ Features included:
 - Should support 40+ 3D file formats. Tested on DXF
 - Supports meshes and polyline models
 - Custom material support
-- LOD: Line models get thicker as the distance increases
 
 ## Installation
 1. Install the Runtime Mesh Component Plugin
