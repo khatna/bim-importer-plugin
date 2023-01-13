@@ -18,6 +18,17 @@ Features included:
 3. `git clone --recurse-submodules https://github.com/khatna/bim-importer-plugin`
 4. Rebuild the project
 
+## Installation for Android
+Build script for Android (`/Source/ThirdParty/UE_AssimpLibrary/build_android.sh and Assimp_APL.xml`) use
+environment variables that are machine-specific. Make sure to change these variables before building. 
+Machine specific variables:
+
+* `ANDROID_NDK`
+* `ANDROID_PLATFORM`
+* `ANDROID_ABI`
+* `cmake` path
+* Android target architecture in `Assimp_APL.xml`
+
 ## To-do
 1. Look into garbage collection, possible memory leaks
 2. Performance profiling
